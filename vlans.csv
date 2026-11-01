@@ -1,0 +1,39 @@
+﻿site;vlan;nom;reseau;passerelle;dhcp;usage
+Paris;;Administration;;;non;Interfaces d'administration : Proxmox, iDRAC/iLO, switches, FortiManager, Devolutions
+Paris;;Identité;;;non;Contrôleur de domaine, NPS, AD CS
+Paris;;Serveurs;;;non;Serveurs d'infrastructure et de services
+Paris;;Kubernetes;;;non;Nœuds des clusters K3s
+Paris;;Bases de données;;;non;Serveurs de bases mutualisés
+Paris;;Comptabilité;;;non;Réseau dédié de l'application comptable (cahier des charges)
+Paris;;Trésorerie;;;non;Réseau dédié de l'application de trésorerie (cahier des charges)
+Paris;;SOC;;;non;Cluster Wazuh
+Paris;;DMZ;;;non;Services publiés sur Internet : WAF, DNS public, site web
+Paris;;Sauvegarde;;;non;Flux de sauvegarde vers les PBS
+Paris;;Stockage Ceph;;;non;Réplication Ceph entre nœuds d'infrastructure
+Paris;;Cluster Proxmox;;;non;Communication du cluster (corosync)
+Paris;;Postes VDI;;;oui (FortiGate);Postes virtuels Windows 11
+Paris;;Utilisateurs filaires;;;oui (FortiGate);Postes physiques et portables en filaire
+Paris;;Wi-Fi Corp;;;oui (FortiGate);802.1X, certificat + domaine
+Paris;;Wi-Fi BYOD;;;oui (FortiGate);Appareils personnels, liste blanche MAC
+Paris;;Wi-Fi Invités;;;oui (FortiGate);Portail captif, Internet seulement
+Paris;;Wi-Fi VoIP;;;oui (FortiGate);iPhones, PPSK
+Paris;;Imprimantes;;;réservations;Imprimantes et scanners, sans Internet
+Paris;;DEV;;;non;Environnement de développement
+Paris;;TEST;;;non;Environnement de test
+Paris;;PRE-PROD;;;non;Pré-production, données anonymisées
+Paris;;Outils dev;;;non;Runners, SonarQube, S3 de test, tests de charge
+Paris;;Admin serveur dev;;;non;Interface du serveur Proxmox des développeurs
+Genève;;Administration;;;non;FortiGate, switches, bornes, iDRAC
+Genève;;Serveurs;;;non;RODC
+Genève;;Clients légers;;;oui (FortiGate);Clients légers vers la VDI de Paris
+Genève;;Wi-Fi Corp;;;oui (FortiGate);802.1X
+Genève;;Wi-Fi BYOD;;;oui (FortiGate);Liste blanche MAC
+Genève;;Wi-Fi Invités;;;oui (FortiGate);Portail captif
+Genève;;Wi-Fi VoIP;;;oui (FortiGate);iPhones, PPSK
+Genève;;Imprimantes;;;réservations;Imprimantes et scanners
+OVH Site 1;;Infrastructure;;;non (statique / OpenStack);Pilot light : SDC, bastion, répliques
+OVH Site 1;;DMZ;;;non;WAF, DNS secondaire, site web
+OVH Site 1;;Plateforme SaaS;;;OpenStack;Production de la plateforme SaaS
+OVH Site 1;;Reprise;;;OpenStack;Applications recréées lors d'une bascule
+OVH Site 2;;Infrastructure;;;non;Pare-feu, administration
+OVH Site 2;;Plateforme SaaS;;;OpenStack;Secours de la plateforme SaaS

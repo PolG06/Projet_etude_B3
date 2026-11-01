@@ -1,0 +1,897 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Inventaire infra Althea</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Les données viennent de infra.csv. Arborescence par site à gauche, fiche de l'élément sélectionné à droite (en bas sur téléphone). */
+:root{
+  --bg:#eef1f4;--surface:#fbfcfd;--raise:#ffffff;--line:#d3d9e0;--line-soft:#e3e7ec;
+  --fg:#16202a;--muted:#5a6876;--accent:#1d6a86;--accent-fg:#ffffff;--sel:#d9eaf2;--sec:#e2e7ed;--hover:#f1f4f7;
+  --warn:#9c5a00;--danger:#b3261e;--guide:#c9d1da;--red:#1d6a86;
+  --k-site:#3c4a58;--k-phy:#9c5a00;--k-hyp:#8f4a1c;--k-vm:#2a5bb0;--k-k8s:#6a47b8;--k-ct:#0b7a75;--k-svc:#b23a73;--k-grp:#56636f;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --indent:1.15rem;--bar-h:7.5rem;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10151b;--surface:#151c23;--raise:#1a222b;--line:#2c3742;--line-soft:#212a33;
+  --fg:#e3e9ef;--muted:#98a6b4;--accent:#62b5d3;--accent-fg:#0a1419;--sel:#1c3542;--sec:#19212a;--hover:#18202a;
+  --warn:#e6a54d;--danger:#ff8a80;--guide:#2f3a45;--red:#62b5d3;
+  --k-site:#c6d0da;--k-phy:#e6a54d;--k-hyp:#e08a57;--k-vm:#7ea9f2;--k-k8s:#b39ef3;--k-ct:#4fd0c8;--k-svc:#ee88b8;--k-grp:#9eabb8;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10151b;--surface:#151c23;--raise:#1a222b;--line:#2c3742;--line-soft:#212a33;
+  --fg:#e3e9ef;--muted:#98a6b4;--accent:#62b5d3;--accent-fg:#0a1419;--sel:#1c3542;--sec:#19212a;--hover:#18202a;
+  --warn:#e6a54d;--danger:#ff8a80;--guide:#2f3a45;--red:#62b5d3;
+  --k-site:#c6d0da;--k-phy:#e6a54d;--k-hyp:#e08a57;--k-vm:#7ea9f2;--k-k8s:#b39ef3;--k-ct:#4fd0c8;--k-svc:#ee88b8;--k-grp:#9eabb8;
+  color-scheme:dark}
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:20;background:var(--surface)}
+[hidden]{display:none!important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:15;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar-in{max-width:1320px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding-block:14px 10px}
+.brand{min-width:0;flex:1 1 260px}
+h1{font-family:var(--f-display);font-weight:700;font-size:1.35rem;letter-spacing:-.01em;margin:0;text-wrap:balance}
+.sub{margin:2px 0 0;color:var(--muted);font-size:.85rem}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.search{flex:1 1 12rem;display:flex}
+.search input{flex:1;width:min(17rem,100%);padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--raise)}
+.btn{border:1px solid var(--line);background:var(--raise);border-radius:6px;padding:6px 11px;cursor:pointer;font-size:.86rem;font-weight:500;white-space:nowrap}
+.btn:hover{background:var(--hover)}
+a.btn{color:inherit;text-decoration:none;display:inline-block}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.sm{padding:3px 9px;font-size:.8rem}
+.statusline{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 16px;padding-block:0 10px}
+#status{font-size:.82rem;color:var(--muted)}
+#status[data-s="err"]{color:var(--danger)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:.78rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+
+.layout{max-width:1320px;margin:0 auto;padding-block:16px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:minmax(0,1fr) 22rem;gap:20px;align-items:start}
+.treebox{min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+
+.rg{display:grid;grid-template-columns:minmax(0,1fr) 3.6rem 8.4rem 3.4rem 4.2rem 5.4rem;gap:0 12px;align-items:start}
+.head{padding:8px 12px;border-bottom:1px solid var(--line);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--sec)}
+.head .n{text-align:right}
+.row{padding:5px 12px;border-bottom:1px solid var(--line-soft);cursor:pointer;outline-offset:-2px}
+.row:hover{background:var(--hover)}
+.row[aria-selected="true"]{background:var(--sel)}
+.row.is-site{background:var(--sec);padding-block:10px;border-bottom-color:var(--line)}
+.row.is-site .nm{font-family:var(--f-display);font-weight:700;font-size:1.02rem}
+.c-name{display:flex;align-items:flex-start;gap:6px;min-width:0;padding-left:calc(var(--d) * var(--indent));
+  background-image:repeating-linear-gradient(to right,var(--guide) 0 1px,transparent 1px var(--indent));
+  background-size:calc(var(--d) * var(--indent)) 100%;background-repeat:no-repeat;background-position:.5rem 0}
+.caret{flex:none;width:1.1rem;height:1.25rem;border:0;background:none;padding:0;display:grid;place-items:center;color:var(--muted);cursor:pointer;border-radius:3px}
+.caret svg{width:9px;height:9px;transition:transform .15s}
+.row[aria-expanded="true"] > .c-name > .caret svg{transform:rotate(90deg)}
+.caret.ph{cursor:default}
+.chip{flex:none;--k:var(--k-grp);font-family:var(--f-mono);font-size:.64rem;font-weight:500;letter-spacing:.05em;line-height:1;padding:3px 5px 2px;border-radius:3px;margin-top:.17rem;color:var(--k);background:color-mix(in srgb,var(--k) 12%,transparent);border:1px solid color-mix(in srgb,var(--k) 38%,transparent);min-width:2.6rem;text-align:center}
+.k-site{--k:var(--k-site)}.k-physique{--k:var(--k-phy)}.k-hyperviseur{--k:var(--k-hyp)}.k-vm{--k:var(--k-vm)}.k-cluster{--k:var(--k-k8s)}.k-conteneur{--k:var(--k-ct)}.k-service{--k:var(--k-svc)}.k-groupe{--k:var(--k-grp)}
+.nm-wrap{min-width:0;display:flex;flex-direction:column;gap:1px}
+.nm{font-weight:500;overflow-wrap:anywhere}
+.ln2{font-size:.8rem;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.redtag{align-self:flex-start;display:inline-flex;align-items:center;gap:4px;font-size:.74rem;font-weight:500;color:var(--red);background:color-mix(in srgb,var(--red) 10%,transparent);border-radius:999px;padding:1px 8px 1px 6px;margin-top:2px}
+.redtag svg{width:11px;height:11px;flex:none}
+.c-n,.c-d{font-family:var(--f-mono);font-size:.82rem;font-variant-numeric:tabular-nums;padding-top:2px;overflow-wrap:anywhere}
+.c-n{text-align:right}
+.c-v,.c-i{font-family:var(--f-mono);font-size:.8rem;padding-top:2px;overflow-wrap:anywhere;color:var(--muted)}
+.c-i{color:var(--fg)}
+.vtable{width:100%;border-collapse:collapse;font-size:.8rem}
+.vtable th,.vtable td{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+.vtable th{font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.vtable td:first-child,.vtable td:nth-child(3){font-family:var(--f-mono);white-space:nowrap}
+.vwrap{overflow-x:auto}
+.iplist{display:grid;gap:2px;font-family:var(--f-mono);font-size:.84rem}
+.iplist span{color:var(--muted);font-family:var(--f-body);font-size:.78rem}
+.tree-msg{padding:28px 16px;color:var(--muted);text-align:center;display:grid;gap:12px;justify-items:center}
+.tree-msg strong{color:var(--fg);font-family:var(--f-display);font-size:1rem}
+mark{background:color-mix(in srgb,var(--accent) 25%,transparent);color:inherit;border-radius:2px}
+.warns{border-top:1px solid var(--line);padding:10px 12px;font-size:.82rem;color:var(--warn)}
+.warns summary{cursor:pointer;font-weight:600}
+.warns ul{margin:6px 0 0;padding-left:1.1rem;display:grid;gap:3px}
+body.drag .treebox{outline:2px dashed var(--accent);outline-offset:4px}
+
+.panel{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--bar-h) + 16px);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;max-height:calc(100vh - var(--bar-h) - 40px);overflow:auto;min-width:0}
+.empty-t{font-family:var(--f-display);font-weight:600;font-size:1rem;margin:0 0 4px}
+.empty p{margin:0;color:var(--muted)}
+.empty .tips{margin-top:12px;padding-left:1.1rem;color:var(--muted);font-size:.85rem;display:grid;gap:4px}
+.ptop{display:flex;align-items:center;gap:8px;min-width:0;margin-bottom:6px}
+.path{font-size:.76rem;color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.closebtn{display:none}
+.dname{font-family:var(--f-display);font-weight:600;font-size:1.12rem;margin:0 0 12px;overflow-wrap:anywhere;text-wrap:balance}
+.res{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:14px}
+.res div{background:var(--raise);border:1px solid var(--line-soft);border-radius:6px;padding:7px 9px;min-width:0}
+.res dt,.dl dt{font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.res dd{margin:2px 0 0;font-family:var(--f-mono);font-size:.86rem;overflow-wrap:anywhere}
+.dl{margin:0;display:grid;gap:12px}
+.dl dd{margin:3px 0 0;overflow-wrap:anywhere}
+.sites{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.site{font-size:.8rem;border:1px solid var(--line);border-radius:6px;padding:3px 8px;background:var(--raise)}
+.site b{font-weight:600}
+.site em{font-style:normal;color:var(--muted);margin-left:4px}
+.site.main{border-color:color-mix(in srgb,var(--red) 50%,var(--line))}
+.why{margin:-4px 0 14px;padding:9px 11px;border-left:3px solid var(--accent);background:color-mix(in srgb,var(--accent) 7%,transparent);border-radius:0 6px 6px 0;font-size:.86rem}
+.why b{display:block;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.link{background:none;border:0;padding:0;color:var(--accent);text-decoration:underline;cursor:pointer;font:inherit}
+.tot{display:grid;gap:8px;margin-bottom:12px}
+.tot h3{margin:0;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.csvref{margin-top:14px;padding-top:10px;border-top:1px solid var(--line-soft);font-size:.78rem;color:var(--muted)}
+.csvref code{font-family:var(--f-mono);font-size:.78rem;color:var(--fg)}
+
+/* Onglets */
+.tabs{display:flex;gap:2px;overflow-x:auto;padding-block:0 0;margin-bottom:-1px}
+.tab{border:0;border-bottom:2px solid transparent;background:none;padding:8px 12px;cursor:pointer;font-weight:600;font-size:.88rem;color:var(--muted);white-space:nowrap}
+.tab:hover{color:var(--fg)}
+.tab[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+.statusline{border-top:1px solid var(--line-soft);padding-top:8px}
+
+/* Serveurs physiques */
+.phrow-h,.prow.phrow{display:grid;grid-template-columns:minmax(0,1fr) 4.2rem 4.6rem 6rem;gap:2px 12px;align-items:start}
+.phrow-h{padding:8px 12px}
+.phname{display:flex;flex-direction:column;gap:1px;min-width:0}
+.phrow .ln2.phcom{grid-column:1/-1;-webkit-line-clamp:2}
+.phsum{grid-template-columns:repeat(auto-fit,minmax(14rem,1fr))}
+.phsum span{display:block}
+
+.sech{margin:16px 0 6px;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;border-top:1px solid var(--line-soft);padding-top:10px}
+.sech span{font-family:var(--f-mono);letter-spacing:0;color:var(--accent)}
+.sechint{margin:-2px 0 8px;font-size:.76rem;color:var(--muted)}
+.items{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.items li{padding-left:10px;border-left:2px solid var(--line)}
+.items b{display:block;font-weight:500;font-size:.86rem}
+.items span{display:block;font-size:.8rem;color:var(--muted)}
+
+/* Schéma */
+.view-wide{max-width:1320px;margin:0 auto;padding-block:16px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.schbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px}
+.schbar p{margin:0;color:var(--muted);font-size:.85rem}
+.schbox{background:#ffffff;border:1px solid var(--line);border-radius:8px;min-height:240px;overflow:auto;color:#16202a}
+.schbox .mxgraph{max-width:100%}
+.schbox img{display:block;max-width:100%;height:auto;margin:0 auto}
+.schbox .tree-msg{color:#5a6876}
+.schbox .tree-msg strong{color:#16202a}
+
+/* Postes clients */
+.flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:12px;border-bottom:1px solid var(--line)}
+.flow div{background:var(--raise);border:1px solid var(--line-soft);border-radius:6px;padding:8px 10px;font-size:.82rem;min-width:0}
+.flow b{display:block;font-family:var(--f-display);font-size:.9rem;margin-bottom:2px}
+.flow span{color:var(--muted)}
+.flow i{font-style:normal;font-family:var(--f-mono);font-size:.7rem;color:var(--accent);display:block;margin-bottom:2px}
+.filters{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;border-bottom:1px solid var(--line);align-items:center}
+.fbtn{border:1px solid var(--line);background:var(--raise);border-radius:999px;padding:3px 11px;font-size:.8rem;cursor:pointer}
+.fbtn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.fcount{margin-left:auto;font-size:.78rem;color:var(--muted)}
+.cat{padding:8px 12px;background:var(--sec);border-bottom:1px solid var(--line);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.prow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:8px 12px;border-bottom:1px solid var(--line-soft);cursor:pointer;outline-offset:-2px}
+.prow:hover{background:var(--hover)}
+.prow[aria-selected="true"]{background:var(--sel)}
+.prow .nm{grid-column:1}
+.prow .ln2{grid-column:1/-1}
+.tags{display:flex;flex-wrap:wrap;gap:4px;justify-content:flex-end;align-items:flex-start}
+.st{--k:var(--k-grp);font-size:.72rem;font-weight:500;padding:1px 7px;border-radius:999px;color:var(--k);background:color-mix(in srgb,var(--k) 12%,transparent);border:1px solid color-mix(in srgb,var(--k) 35%,transparent);white-space:nowrap}
+.st.s-ret{--k:var(--danger)}.st.s-ok{--k:var(--k-ct)}.st.s-web{--k:var(--k-vm)}.st.s-pil{--k:var(--warn)}.st.s-opt{--k:var(--k-k8s)}.st.s-non{--k:var(--k-grp)}.st.s-tbd{--k:var(--k-svc)}
+.st.c-cl{--k:var(--k-hyp)}.st.c-web{--k:var(--k-svc)}.st.c-vdi{--k:var(--k-vm)}
+.steps{margin:0;padding-left:1.1rem;display:grid;gap:4px}
+
+@media (max-width:960px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  .panel{position:fixed;left:0;right:0;bottom:0;top:auto;max-height:78vh;border-radius:12px 12px 0 0;border-bottom:0;z-index:30;
+    padding-block:16px max(16px,env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+    transform:translateY(105%);transition:transform .2s ease;box-shadow:0 -8px 30px rgba(0,0,0,.18)}
+  .panel.open{transform:none}
+  .closebtn{display:inline-block}
+  .flow{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:640px){
+  .head.rg{display:none}
+  .phrow-h{display:none}
+  .prow.phrow{display:flex;flex-wrap:wrap;gap:2px 14px}
+  .phname{flex:1 1 100%}
+  .rg{display:flex;flex-wrap:wrap;gap:2px 14px}
+  .c-name{flex:1 1 100%}
+  .row:not(.is-site) .c-name + span{margin-left:calc(var(--d) * var(--indent) + 1.6rem)}
+  .c-n,.c-d{text-align:left}
+  .c-n:empty,.c-d:empty,.c-v:empty,.c-i:empty{display:none}
+  .c-n:not(:empty)::before,.c-d:not(:empty)::before,.c-v:not(:empty)::before,.c-i:not(:empty)::before{content:attr(data-l) " ";color:var(--muted);font-family:var(--f-body);font-size:.72rem}
+  .res{grid-template-columns:1fr 1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="bar" id="bar">
+  <div class="bar-in top">
+    <div class="brand">
+      <h1>Inventaire infra Althea</h1>
+      <p class="sub" id="sub">Serveurs classés par site. Données : <code>infra.csv</code> et <code>vlans.csv</code>.</p>
+    </div>
+    <div class="tools">
+      <label class="search" for="q"><span class="sr">Rechercher</span><input id="q" type="search" placeholder="Rechercher un serveur, un rôle…" autocomplete="off"></label>
+      <button id="exp" class="btn" type="button">Tout déplier</button>
+      <button id="col" class="btn" type="button">Tout replier</button>
+      <button id="pick" class="btn" type="button">Ouvrir un fichier</button>
+      <input id="file" type="file" accept=".csv,text/csv,.drawio,.xml,.svg,.png,.jpg,.jpeg" multiple hidden>
+    </div>
+  </div>
+  <nav class="bar-in tabs" role="tablist" aria-label="Vues">
+    <button class="tab" role="tab" type="button" data-tab="inventaire" aria-selected="true">Inventaire</button>
+    <button class="tab" role="tab" type="button" data-tab="schema" aria-selected="false">Schéma</button>
+    <button class="tab" role="tab" type="button" data-tab="postes" aria-selected="false">Postes clients</button>
+    <button class="tab" role="tab" type="button" data-tab="physiques" aria-selected="false">Serveurs physiques</button>
+  </nav>
+  <div class="bar-in statusline"><span id="status" role="status">Chargement de infra.csv…</span><div class="legend" id="legend"></div></div>
+</header>
+<main class="layout" id="v-inventaire">
+  <section class="treebox" aria-label="Arborescence de l'infrastructure">
+    <div class="head rg" aria-hidden="true"><span>Élément</span><span>VLAN</span><span>IP</span><span class="n">vCPU</span><span class="n">RAM (Go)</span><span class="n">Stockage (Go)</span></div>
+    <div id="tree" role="tree" aria-label="Infrastructure par site"></div>
+    <details id="warns" class="warns" hidden><summary id="warns-t"></summary><ul id="warns-l"></ul></details>
+  </section>
+  <aside id="panel" class="panel" aria-label="Détails de l'élément">
+    <div id="empty" class="empty">
+      <p class="empty-t">Aucun élément sélectionné</p>
+      <p>Cliquez sur une ligne pour afficher ce qu'elle fait, la technologie choisie, ses ressources avec leur justification et sa redondance.</p>
+      <ul class="tips">
+        <li>La flèche à gauche d'un nom déplie ce qu'il contient.</li>
+        <li>Une pastille signale un serveur redondé sur un autre site, ou une réplique.</li>
+        <li>Pour modifier une information, éditez <code>infra.csv</code> puis rechargez la page.</li>
+      </ul>
+    </div>
+    <div id="detail" hidden></div>
+  </aside>
+</main>
+
+<main class="view-wide" id="v-schema" hidden>
+  <div class="schbar">
+    <p id="sch-info">Schéma d'architecture.</p>
+    <div class="tools">
+      <button class="btn" type="button" data-zoom="out" hidden aria-label="Dézoomer">−</button>
+      <button class="btn" type="button" data-zoom="fit" hidden>Ajuster</button>
+      <button class="btn" type="button" data-zoom="1" hidden>100 %</button>
+      <button class="btn" type="button" data-zoom="in" hidden aria-label="Zoomer">+</button>
+      <a id="sch-dl" class="btn" href="infra-shema.drawio" download>Télécharger le schéma</a>
+    </div>
+  </div>
+  <div class="schbox" id="sch-box"><div class="tree-msg">Chargement du schéma…</div></div>
+</main>
+
+<main class="layout" id="v-physiques" hidden>
+  <section class="treebox" aria-label="Serveurs physiques">
+    <div class="flow phsum" id="phsum"></div>
+    <div class="filters" role="group" aria-label="Filtrer par site" id="phfilters"></div>
+    <div class="head phrow-h" aria-hidden="true"><span>Équipement</span><span class="n">Threads</span><span class="n">RAM</span><span class="n">Stockage utile</span></div>
+    <div id="phlist" role="listbox" aria-label="Serveurs physiques"></div>
+  </section>
+  <aside id="phpanel" class="panel" aria-label="Détails du serveur physique">
+    <div id="phempty" class="empty">
+      <p class="empty-t">Aucun serveur sélectionné</p>
+      <p>Cliquez sur une ligne pour voir ses ressources, ses disques, son réseau, son cluster et ce qui tourne dessus.</p>
+      <ul class="tips">
+        <li>Les filtres en haut séparent les sites (Paris, Genève…).</li>
+        <li>Le lien « Fiche dans l'inventaire » ouvre le même serveur dans l'onglet Inventaire.</li>
+        <li>Pour modifier une information, éditez <code>physiques.csv</code> puis rechargez la page.</li>
+      </ul>
+    </div>
+    <div id="phdetail" hidden></div>
+  </aside>
+</main>
+
+<main class="layout" id="v-postes" hidden>
+  <section class="treebox" aria-label="Agents et logiciels des postes clients">
+    <div class="flow" aria-label="Chaîne de connexion">
+      <div><i>1</i><b>Poste d'accès</b><span>Portable à Paris (bureau ou télétravail), client léger à Genève : il sert seulement à ouvrir la session.</span></div>
+      <div><i>2</i><b>OpenUDS + Keycloak</b><span>Identification avec MFA, attribution d'un poste libre.</span></div>
+      <div><i>3</i><b>Session VDI</b><span>Clone Windows 11 créé depuis le modèle de son profil.</span></div>
+      <div><i>4</i><b>Déconnexion</b><span>Le clone est détruit puis recréé propre.</span></div>
+    </div>
+    <div class="filters" role="group" aria-label="Filtrer">
+      <button class="fbtn" type="button" data-f="tous" aria-pressed="true">Tout</button>
+      <button class="fbtn" type="button" data-f="cl" aria-pressed="false">Postes d'accès</button>
+      <button class="fbtn" type="button" data-f="vdi" aria-pressed="false">Sessions VDI</button>
+      <button class="fbtn" type="button" data-f="web" aria-pressed="false">Applications web</button>
+      <button class="fbtn" type="button" data-f="ret" aria-pressed="false">Retirés de Windows</button>
+      <span class="fcount" id="pcount"></span>
+    </div>
+    <div id="plist" role="listbox" aria-label="Logiciels"></div>
+  </section>
+  <aside id="ppanel" class="panel" aria-label="Détails du logiciel">
+    <div id="pempty" class="empty">
+      <p class="empty-t">Aucun logiciel sélectionné</p>
+      <p>Cliquez sur une ligne pour voir à quoi sert le logiciel, comment il est installé, configuré et mis à jour.</p>
+      <ul class="tips">
+        <li>Seuls les logiciels ajoutés par Althea sont listés, en plus de Windows ou du système des clients légers.</li>
+        <li>« Applications web » liste ce qui s'utilise par le navigateur, sans rien installer, et où y accéder.</li>
+        <li>« Retirés de Windows » liste ce qu'on enlève du modèle VDI, avec la raison.</li>
+        <li>Pour modifier une information, éditez <code>postes.csv</code> puis rechargez la page.</li>
+      </ul>
+    </div>
+    <div id="pdetail" hidden></div>
+  </aside>
+</main>
+<script>
+(function(){
+  "use strict";
+  /* Ordre d'affichage des sites. Un site inconnu écrit dans le CSV s'ajoute automatiquement à la fin. */
+  var SITE_ORDER=["Paris","Genève","OVH Site 1","OVH Site 2"];
+  var CSV_FILE="infra.csv";
+  var KINDS={
+    site:{tag:"SITE",label:"Site"},
+    physique:{tag:"PHY",label:"Serveur physique / équipement"},
+    hyperviseur:{tag:"HYP",label:"Hyperviseur"},
+    vm:{tag:"VM",label:"Machine virtuelle / instance"},
+    cluster:{tag:"K8S",label:"Cluster Kubernetes (compté comme une VM)"},
+    conteneur:{tag:"CT",label:"Conteneur"},
+    service:{tag:"SVC",label:"Service cloud / SaaS"},
+    groupe:{tag:"GRP",label:"Groupe"}
+  };
+  var COLS=["id","parent","site","nom","type","fonction","technologie","vlan","ip","vcpu","ram","stockage","reseau","replique_de","redondance","justif_ressources","note","cluster"];
+  var CHEV='<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M3 1.5 7 5 3 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var SYNC='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4.5h7.5M7.5 2.5l2 2-2 2M10 7.5H2.5M4.5 5.5l-2 2 2 2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var GRPI='<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="1.5" y="1.5" width="4" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="6.5" y="1.5" width="4" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="4" y="6.5" width="4" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>';
+  var LS_OPEN="althea-infra-open-v3";
+
+  var $=function(id){return document.getElementById(id)};
+  var treeEl=$("tree"), qEl=$("q"), panel=$("panel"), statusEl=$("status");
+  var model=null, open=new Set(), sel=null, source="", vlans={}, vlanSource="";
+  var VCOLS=["site","vlan","nom","reseau","passerelle","dhcp","usage"];
+
+  function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+  function norm(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim()}
+  function num(v){var s=String(v==null?"":v).trim().replace(/\s/g,"").replace(",",".");return /^\d+(\.\d+)?$/.test(s)?parseFloat(s):null}
+  function fmt(v){var n=num(v);return n==null?String(v||""):n.toLocaleString("fr-FR")}
+  function fmtGo(v){var n=num(v);if(n==null)return v?esc(v):"·";return esc(n.toLocaleString("fr-FR"))+" Go"+(n>=1000?' <span style="color:var(--muted)">(≈ '+(n/1000).toLocaleString("fr-FR",{maximumFractionDigits:1})+" To)</span>":"")}
+  function firstIP(s){var m=String(s||"").match(/\d{1,3}(\.\d{1,3}){3}(\/\d+)?/);return m?m[0]:(/dhcp/i.test(s||"")?"DHCP":"")}
+  function vlanList(o){return String(o.vlan||"").split("|").map(function(x){return x.trim()}).filter(Boolean)}
+  function vlanInfo(site,v){return vlans[site+"|"+v]||null}
+  function setStatus(t,err){statusEl.textContent=t;if(err)statusEl.setAttribute("data-s","err");else statusEl.removeAttribute("data-s")}
+
+  $("legend").innerHTML=Object.keys(KINDS).filter(function(k){return k!=="site"}).map(function(k){return '<span><span class="chip k-'+k+'">'+KINDS[k].tag+'</span>'+esc(KINDS[k].label)+'</span>'}).join("");
+
+  /* ---------- Lecture du CSV ---------- */
+  function decode(buf){try{return new TextDecoder("utf-8",{fatal:true}).decode(buf)}catch(e){return new TextDecoder("windows-1252").decode(buf)}}
+  function parseCSV(text){
+    text=text.replace(/^\uFEFF/,"");
+    var first=text.split(/\r?\n/,1)[0], delim=(first.split(";").length>=first.split(",").length)?";":",";
+    var rows=[],row=[],f="",q=false,i=0,c;
+    for(;i<text.length;i++){
+      c=text[i];
+      if(q){if(c==='"'){if(text[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
+      else if(c==='"')q=true;
+      else if(c===delim){row.push(f);f=""}
+      else if(c==="\n"||c==="\r"){if(c==="\r"&&text[i+1]==="\n")i++;row.push(f);rows.push(row);row=[];f=""}
+      else f+=c;
+    }
+    if(f!==""||row.length){row.push(f);rows.push(row)}
+    return rows;
+  }
+  function build(text){
+    var raw=parseCSV(text), warns=[];
+    if(!raw.length)throw new Error("Le fichier est vide.");
+    var head=raw[0].map(norm), idx={};
+    COLS.forEach(function(c){idx[c]=head.indexOf(c)});
+    if(idx.site<0)idx.site=head.indexOf("sites");
+    if(idx.nom<0)throw new Error("La colonne « nom » est introuvable dans la première ligne du fichier.");
+    var items=[],byId={};
+    raw.slice(1).forEach(function(r,i){
+      var o={line:i+2};
+      COLS.forEach(function(c){o[c]=idx[c]>=0&&r[idx[c]]!=null?String(r[idx[c]]).trim():""});
+      if(!o.nom&&!o.id)return;
+      if(!o.id)o.id="ligne-"+o.line;
+      if(byId[o.id]){warns.push("Ligne "+o.line+" : l'identifiant « "+o.id+" » existe déjà, la ligne est ignorée.");return}
+      o.type=norm(o.type);if(!KINDS[o.type]||o.type==="site"){if(o.type)warns.push("Ligne "+o.line+" : type « "+o.type+" » inconnu, affiché comme groupe.");o.type="groupe"}
+      o.siteList=o.site?o.site.split("|").map(function(s){return s.trim()}).filter(Boolean):[];
+      o.children=[];o.replicas=[];o.members=[];items.push(o);byId[o.id]=o;
+    });
+    var tops=[];
+    items.forEach(function(o){
+      if(o.parent){
+        var p=byId[o.parent];
+        if(!p||p===o){warns.push("Ligne "+o.line+" (« "+o.nom+" ») : parent « "+o.parent+" » introuvable, l'élément est placé à la racine de son site.");tops.push(o)}
+        else{p.children.push(o);if(o.siteList.length)warns.push("Ligne "+o.line+" (« "+o.nom+" ») : la colonne « site » est ignorée car l'élément a un parent.")}
+      } else tops.push(o);
+      if(o.cluster){var cl=byId[o.cluster];if(cl&&cl!==o)cl.members.push(o);else{warns.push("Ligne "+o.line+" (« "+o.nom+" ») : « cluster » pointe vers « "+o.cluster+" », introuvable.");o.cluster=""}}
+      if(o.replique_de){var m=byId[o.replique_de];if(m&&m!==o)m.replicas.push(o);else{warns.push("Ligne "+o.line+" (« "+o.nom+" ») : « replique_de » pointe vers « "+o.replique_de+" », introuvable.");o.replique_de=""}}
+    });
+    function inherit(o,sites){if(o.parent&&byId[o.parent])o.siteList=sites.slice();o.children.forEach(function(c){inherit(c,o.siteList)})}
+    tops.forEach(function(o){inherit(o,o.siteList)});
+    var sites={},order=SITE_ORDER.slice();
+    tops.forEach(function(o){
+      var list=o.siteList.length?o.siteList:["Sans site"];
+      if(!o.siteList.length)warns.push("Ligne "+o.line+" (« "+o.nom+" ») : colonne « site » vide.");
+      list.forEach(function(s){if(order.indexOf(s)<0)order.push(s);(sites[s]=sites[s]||[]).push(o)});
+    });
+    order=order.filter(function(s){return sites[s]});
+    var keyOf={};
+    order.forEach(function(s){(function w(l,p){l.forEach(function(o){var k=p+"/"+o.id;if(!keyOf[o.id])keyOf[o.id]=k;w(o.children,k)})})(sites[s],"site:"+s)});
+    return {items:items,byId:byId,sites:sites,order:order,warns:warns,keyOf:keyOf};
+  }
+  function isVlanFile(text){var h=parseCSV(text.slice(0,2000))[0]||[];h=h.map(norm);return h.indexOf("passerelle")>=0||(h.indexOf("vlan")>=0&&h.indexOf("reseau")>=0&&h.indexOf("type")<0)}
+  function ingestVlans(text,name){
+    var raw=parseCSV(text);if(!raw.length)return;var h=raw[0].map(norm),idx={};VCOLS.forEach(function(c){idx[c]=h.indexOf(c)});
+    vlans={};raw.slice(1).forEach(function(r){var o={};VCOLS.forEach(function(c){o[c]=idx[c]>=0&&r[idx[c]]!=null?String(r[idx[c]]).trim():""});if(o.site&&(o.vlan||o.nom))vlans[o.site+"|"+(o.vlan||o.nom)]=o});
+    vlanSource=name;if(model){render();fillDetail();statusLine()}
+  }
+  function statusLine(){if(tab!=="inventaire"||!model)return;var w=model.warns.length;setStatus(model.items.length+" éléments sur "+model.order.length+" sites · "+Object.keys(vlans).length+" VLAN · sources : "+source+(vlanSource?", "+vlanSource:"")+(w?" · "+w+" avertissement"+(w>1?"s":""):""))}
+  function ingest(text,name){
+    try{model=build(text)}catch(e){showMessage("Lecture impossible",esc(e.message),true);setStatus("Erreur dans "+name+".",true);return}
+    source=name;
+    var saved=null;try{saved=JSON.parse(localStorage.getItem(LS_OPEN)||"null")}catch(e){}
+    open=new Set(saved||model.order.map(function(s){return "site:"+s}));
+    sel=null;fillDetail();render();
+    var w=model.warns.length;statusLine();
+    $("warns").hidden=!w;$("warns-t").textContent=w+" ligne"+(w>1?"s":"")+" à vérifier dans le fichier";
+    $("warns-l").innerHTML=model.warns.map(function(t){return "<li>"+esc(t)+"</li>"}).join("");
+  }
+  function showMessage(title,html,withPick){
+    treeEl.innerHTML='<div class="tree-msg"><strong>'+esc(title)+'</strong><div>'+html+'</div>'+(withPick?'<button class="btn primary" type="button" data-pick>Choisir infra.csv et vlans.csv</button>':"")+'</div>';
+  }
+  function loadDefault(){
+    fetch("vlans.csv",{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.arrayBuffer()}).then(function(b){ingestVlans(decode(b),"vlans.csv")}).catch(function(){});
+    fetch(CSV_FILE,{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error(r.status);return r.arrayBuffer()})
+      .then(function(b){ingest(decode(b),CSV_FILE)})
+      .catch(function(){
+        setStatus("infra.csv n'a pas pu être lu automatiquement.",true);
+        showMessage("Choisissez le fichier de données","La page n'a pas pu lire <code>infra.csv</code>. C'est normal quand index.html est ouvert directement depuis l'ordinateur : le navigateur l'interdit. Sur GitHub Pages, le fichier se charge seul.<br>Vous pouvez aussi glisser les fichiers (infra.csv et vlans.csv) sur cette page.",true);
+      });
+  }
+  function readFile(f){
+    if(!f)return;
+    if(/^image\//.test(f.type)||/\.(png|jpe?g|svg)$/i.test(f.name)){showSchemaImage(URL.createObjectURL(f),f.name);showTab("schema");return}
+    var r=new FileReader();
+    r.onload=function(){var t=decode(r.result);
+      if(/\.drawio$/i.test(f.name)||/^\s*<(mxfile|mxGraphModel)/.test(t)){showDrawio(t,f.name);showTab("schema")}
+      else if(isPhysFile(t)){ingestPhys(t,f.name);showTab("physiques")}
+      else if(isPostesFile(t)){ingestPostes(t,f.name);showTab("postes")}
+      else if(isVlanFile(t)){ingestVlans(t,f.name);showTab("inventaire")}
+      else{ingest(t,f.name);showTab("inventaire")}};
+    r.readAsArrayBuffer(f)}
+  function readFiles(list){Array.from(list||[]).forEach(readFile)}
+
+  /* ---------- Calculs ---------- */
+  /* Totaux : VM, clusters Kubernetes (traités comme des VM), serveurs physiques et hyperviseurs sont tous des « serveurs ».
+     Un cluster sans ressources (ses VM ont leur propre ligne, sous leur hyperviseur) n'est pas compté, pour éviter un double comptage.
+     Les ressources additionnent les VM et les serveurs physiques. Celles des hyperviseurs sont déjà consommées par leurs VM :
+     elles sont affichées à part (capacité) pour ne pas être comptées deux fois.
+     Les conteneurs, groupes, clusters et services ne sont pas comptés (ils tournent dans des VM déjà comptées, ou ne sont pas des machines). */
+  function siteStats(list){
+    var t={srv:{n:0,v:0,r:0,s:0},cap:{n:0,v:0,r:0,s:0}};
+    (function w(l){l.forEach(function(o){
+      var isHyp=o.type==="hyperviseur", hasRes=num(o.vcpu)!=null||num(o.ram)!=null, isSrv=isHyp||o.type==="vm"||(o.type==="cluster"&&hasRes)||o.type==="physique";
+      if(isSrv){t.srv.n++;var b=isHyp?t.cap:t.srv;if(isHyp)b.n++;var a=num(o.vcpu),c=num(o.ram),d=num(o.stockage);if(a!=null)b.v+=a;if(c!=null)b.r+=c;if(d!=null)b.s+=d}
+      w(o.children)})})(list);
+    return t;
+  }
+  function resLine(b){if(!b.v&&!b.r&&!b.s)return "";var p=[];if(b.v)p.push(b.v.toLocaleString("fr-FR")+" vCPU");if(b.r)p.push(b.r.toLocaleString("fr-FR")+" Go de RAM");if(b.s)p.push((b.s>=1000?(b.s/1000).toLocaleString("fr-FR",{maximumFractionDigits:1})+" To":b.s.toLocaleString("fr-FR")+" Go")+" de stockage");return p.join(", ")}
+  function siteOf(o){return o.siteList[0]||""}
+  function relation(o,site){
+    if(o.replique_de){var m=model.byId[o.replique_de];return "Réplique de « "+m.nom+" » ("+siteOf(m)+")"}
+    if(o.replicas.length){var s=[];o.replicas.forEach(function(r){var x=siteOf(r);if(s.indexOf(x)<0&&x!==site)s.push(x)});if(s.length)return "Redondé sur "+s.join(", ")}
+    if(o.siteList.length>1&&!o.parent){var others=o.siteList.filter(function(x){return x!==site});return site===o.siteList[0]?"Redondé sur "+others.join(", "):"Également sur "+o.siteList[0]+" (principal)"}
+    return "";
+  }
+
+  /* ---------- Arbre ---------- */
+  function saveOpen(){try{localStorage.setItem(LS_OPEN,JSON.stringify(Array.from(open)))}catch(e){}}
+  function hl(text,q){var t=String(text||"");if(!q)return esc(t);var i=norm(t).indexOf(q);if(i<0)return esc(t);return esc(t.slice(0,i))+"<mark>"+esc(t.slice(i,i+q.length))+"</mark>"+esc(t.slice(i+q.length))}
+  function hay(o){return norm([o.nom,o.ip,o.vlan?"vlan "+o.vlan:"",vlanList(o).map(function(v){var i=vlanInfo(o.siteList[0],v);return i?i.nom:""}).join(" "),o.fonction,o.technologie,o.justif_ressources,o.note,o.reseau,o.redondance,o.site].join(" "))}
+  function hasMatch(o,q){if(hay(o).indexOf(q)>=0)return true;return o.children.some(function(c){return hasMatch(c,q)})}
+  function row(key,o,d,kids,isOpen,q,site){
+    var isSite=!o, k=isSite?"site":o.type;
+    var name=isSite?site:o.nom, line2="", tag="";
+    if(isSite){var s=siteStats(model.sites[site]),rl2=resLine(s.srv);line2=s.srv.n+" serveur"+(s.srv.n>1?"s":"")+(rl2?" · "+rl2:"")}
+    else{line2=o.fonction||o.note||"";var rl=relation(o,site);if(rl)tag='<span class="redtag">'+SYNC+esc(rl)+'</span>';
+      if(o.members.length){var hs=[];o.members.forEach(function(m){var h=model.byId[m.parent];var x=h?h.nom:"";if(x&&hs.indexOf(x)<0)hs.push(x)});tag+='<span class="redtag">'+o.members.length+' VM'+(hs.length?' sur '+esc(hs.join(", ")):"")+'</span>'}
+      else if(o.cluster&&model.byId[o.cluster])tag+='<span class="redtag">'+GRPI+'Membre de « '+esc(model.byId[o.cluster].nom)+' »</span>'}
+    return '<div class="row rg'+(isSite?" is-site":"")+'" role="treeitem" tabindex="-1" data-key="'+esc(key)+'" aria-level="'+(d+1)+'"'+(kids?' aria-expanded="'+isOpen+'"':"")+' aria-selected="'+(sel===key)+'" style="--d:'+d+'">'+
+      '<div class="c-name">'+(kids?'<button type="button" class="caret" data-t="'+esc(key)+'" tabindex="-1" aria-label="'+(isOpen?"Replier":"Déplier")+'">'+CHEV+'</button>':'<span class="caret ph"></span>')+
+      '<span class="chip k-'+k+'">'+KINDS[k].tag+'</span><span class="nm-wrap"><span class="nm">'+hl(name,q)+'</span>'+(line2?'<span class="ln2">'+(isSite?esc(line2):hl(line2,q))+'</span>':"")+tag+'</span></div>'+
+      '<span class="c-v" data-l="VLAN">'+(isSite?"":esc(vlanList(o)[0]||""))+'</span><span class="c-i" data-l="IP">'+(isSite?"":hl(firstIP(o.ip),q))+'</span>'+
+      '<span class="c-n" data-l="vCPU">'+(isSite?"":esc(fmt(o.vcpu)))+'</span><span class="c-n" data-l="RAM">'+(isSite?"":esc(fmt(o.ram)))+'</span><span class="c-n" data-l="Stockage">'+(isSite?"":esc(fmt(o.stockage)))+'</span></div>';
+  }
+  function render(){
+    if(!model)return;
+    var q=norm(qEl.value), out=[];
+    model.order.forEach(function(site){
+      var list=model.sites[site].filter(function(o){return !q||hasMatch(o,q)});
+      if(q&&!list.length&&norm(site).indexOf(q)<0)return;
+      var sk="site:"+site, so=q?true:open.has(sk);
+      out.push(row(sk,null,0,list.length>0,so,q,site));
+      if(!so)return;
+      (function walk(l,d,path){l.forEach(function(o){
+        if(o.members.length)return; /* cluster ou groupe logique : ses VM sont affichées sous leur hyperviseur */
+        if(q&&!hasMatch(o,q))return;
+        var key=path+"/"+o.id, kids=o.children.length>0, io=q?true:open.has(key);
+        out.push(row(key,o,d,kids,io,q,site));
+        if(kids&&io)walk(o.children,d+1,key);
+      })})(list,1,sk);
+    });
+    var had=treeEl.contains(document.activeElement)?document.activeElement.getAttribute("data-key"):null;
+    treeEl.innerHTML=out.join("")||'<div class="tree-msg">Aucun élément ne correspond à « '+esc(qEl.value)+' ».</div>';
+    var t=treeEl.querySelector('.row[data-key="'+cssEsc(had||sel||"")+'"]')||treeEl.querySelector(".row");
+    if(t)t.tabIndex=0;if(had&&t)t.focus({preventScroll:true});
+  }
+  function cssEsc(s){return String(s).replace(/["\\]/g,"\\$&")}
+  function nodeFromKey(key){if(!key||key.indexOf("site:")!==0)return null;var parts=key.split("/");return {site:parts[0].slice(5),node:parts.length>1?model.byId[parts[parts.length-1]]:null,path:parts.slice(1).map(function(id){return model.byId[id]})}}
+
+  /* ---------- Fiche ---------- */
+  function siteVlans(site){
+    var l=Object.keys(vlans).map(function(k){return vlans[k]}).filter(function(v){return v.site===site});
+    if(!l.length)return "";
+    return '<h3 style="margin:4px 0 6px;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">VLAN du site</h3><table class="vtable"><thead><tr><th>VLAN</th><th>Nom</th><th>Réseau</th></tr></thead><tbody>'+
+      l.map(function(v){return '<tr title="'+esc(v.usage)+'"><td>'+esc(v.vlan)+'</td><td>'+esc(v.nom)+'</td><td>'+esc(v.reseau)+'</td></tr>'}).join("")+'</tbody></table>';
+  }
+  function addrBlock(o){
+    var vl=vlanList(o), ips=String(o.ip||"").split("|").map(function(x){return x.trim()}).filter(Boolean);
+    if(!vl.length&&!ips.length)return "";
+    var site=o.siteList[0];
+    var vh=vl.map(function(v){var i=vlanInfo(site,v);return '<div>VLAN '+esc(v)+(i?' · '+esc(i.nom)+' <span>'+esc(i.reseau)+(i.passerelle?', passerelle '+esc(i.passerelle):"")+'</span>':' <span>(absent de vlans.csv)</span>')+'</div>'}).join("");
+    var ih=ips.map(function(x){var m=x.match(/^([^:]+):\s*(.+)$/);return m&&!/^\d/.test(m[1])?'<div><span>'+esc(m[1])+' :</span> '+esc(m[2])+'</div>':'<div>'+esc(x)+'</div>'}).join("");
+    return '<div><dt>Adressage</dt><dd><div class="iplist">'+ih+vh+'</div></dd></div>';
+  }
+  function linkTo(o){return '<button type="button" class="link" data-go="'+esc(o.id)+'">'+esc(o.nom)+'</button> ('+esc(siteOf(o))+')'}
+  function fillDetail(){
+    var r=nodeFromKey(sel), box=$("detail");
+    if(!r){box.hidden=true;$("empty").hidden=false;panel.classList.remove("open");return}
+    var top='<div class="ptop"><span class="chip k-'+(r.node?r.node.type:"site")+'">'+KINDS[r.node?r.node.type:"site"].tag+'</span><span class="path">'+esc(r.node?[r.site].concat(r.path.slice(0,-1).map(function(x){return x.nom})).join(" › "):"Site")+'</span><button type="button" class="btn sm closebtn" data-close>Fermer</button></div>';
+    if(!r.node){
+      var s=siteStats(model.sites[r.site]);
+      var blk=function(t,b,first){return '<div><h3>'+t+'</h3><dl class="res"><div><dt>'+first+'</dt><dd>'+b.n+'</dd></div><div><dt>vCPU</dt><dd>'+b.v.toLocaleString("fr-FR")+'</dd></div><div><dt>RAM (Go)</dt><dd>'+b.r.toLocaleString("fr-FR")+'</dd></div></dl><p class="csvref" style="border:0;margin:0;padding:0">Stockage : '+fmtGo(b.s)+'</p></div>'};
+      box.innerHTML=top+'<p class="dname">'+esc(r.site)+'</p><div class="tot">'+blk("Serveurs",s.srv,"Serveurs")+(s.cap.n?blk("Capacité des hyperviseurs",s.cap,"Hyperviseurs"):"")+'</div><div class="vwrap">'+siteVlans(r.site)+'</div><p class="csvref">Serveurs = VM, clusters Kubernetes (comptés comme des VM), serveurs physiques et hyperviseurs. Les ressources additionnent les VM, les clusters et les serveurs physiques ; celles des hyperviseurs sont déjà utilisées par leurs VM, elles sont donc affichées à part comme capacité. Les conteneurs, groupes et services managés ne sont pas comptés : ils tournent dans des clusters déjà comptés, ou ne sont pas des machines.</p>';
+      box.hidden=false;$("empty").hidden=true;return;
+    }
+    var o=r.node, f=function(label,v){return v?'<div><dt>'+label+'</dt><dd>'+esc(v)+'</dd></div>':""};
+    var rel=[];
+    if(o.replique_de)rel.push("Réplique de "+linkTo(model.byId[o.replique_de]));
+    if(o.replicas.length)rel.push("Répliques : "+o.replicas.map(linkTo).join(", "));
+    if(o.siteList.length>1&&!o.parent)rel.push("Présent sur "+esc(o.siteList.join(", "))+" (principal : "+esc(o.siteList[0])+")");
+    var hasRes=o.vcpu||o.ram||o.stockage;
+    box.innerHTML=top+'<p class="dname">'+esc(o.nom)+'</p>'+
+      (hasRes?'<dl class="res"><div><dt>vCPU</dt><dd>'+(esc(fmt(o.vcpu))||"·")+'</dd></div><div><dt>RAM</dt><dd>'+(o.ram?esc(fmt(o.ram))+" Go":"·")+'</dd></div><div><dt>Stockage</dt><dd>'+fmtGo(o.stockage)+'</dd></div></dl>':"")+
+      (o.justif_ressources?'<div class="why"><b>Pourquoi ces ressources</b>'+esc(o.justif_ressources)+'</div>':"")+
+      '<dl class="dl">'+
+        f("Ce qu'il fait",o.fonction)+
+        f("Technologie retenue",o.technologie)+
+        '<div><dt>Site</dt><dd>'+esc(o.siteList.join(", ")||"·")+'</dd></div>'+addrBlock(o)+
+        (o.redondance||rel.length?'<div><dt>Redondance</dt><dd>'+(o.redondance?esc(o.redondance):"")+(rel.length?'<div style="margin-top:4px">'+rel.join("<br>")+'</div>':"")+'</dd></div>':"")+
+        f("Réseau",o.reseau)+
+        '<div><dt>Type</dt><dd>'+esc(KINDS[o.type].label)+'</dd></div>'+
+        f("Note",o.note)+
+        (o.members.length?'<div><dt>Composé de</dt><dd><div class="iplist" style="font-family:var(--f-body)">'+o.members.map(function(m){var h=model.byId[m.parent];return '<div><button type="button" class="link" data-go="'+esc(m.id)+'">'+esc(m.nom)+'</button> <span>'+esc([fmt(m.vcpu)+" vCPU / "+fmt(m.ram)+" Go",h?"sur "+h.nom:""].filter(Boolean).join(" · "))+'</span></div>'}).join("")+'</div></dd></div>':"")+
+        (o.cluster&&model.byId[o.cluster]?(function(c){var others=c.members.filter(function(m){return m!==o});return '<div><dt>Fait partie de</dt><dd>'+linkTo(c)+(c.fonction?'<div style="color:var(--muted);font-size:.84rem;margin-top:2px">'+esc(c.fonction)+'</div>':"")+(others.length?'<div style="margin-top:4px;font-size:.84rem">Autres membres : '+others.map(function(m){var h=model.byId[m.parent];return '<button type="button" class="link" data-go="'+esc(m.id)+'">'+esc(m.nom)+'</button>'+(h?' ('+esc(h.nom)+')':"")}).join(", ")+'</div>':"")+'</dd></div>'})(model.byId[o.cluster]):"")+
+        (o.children.length?'<div><dt>Contient</dt><dd>'+o.children.map(function(c){return '<button type="button" class="link" data-go="'+esc(c.id)+'">'+esc(c.nom)+'</button>'}).join(", ")+'</dd></div>':"")+
+      '</dl>'+
+      '<p class="csvref">Dans <code>'+esc(source)+'</code> : ligne '+o.line+', id <code>'+esc(o.id)+'</code>'+(o.parent?', parent <code>'+esc(o.parent)+'</code>':"")+'.</p>';
+    box.hidden=false;$("empty").hidden=true;
+  }
+  function select(key,focus){
+    sel=key;
+    var parts=key.split("/");for(var i=1;i<parts.length;i++)open.add(parts.slice(0,i).join("/"));
+    render();fillDetail();
+    if(window.matchMedia("(max-width:960px)").matches)panel.classList.add("open");
+    var r=treeEl.querySelector('.row[data-key="'+cssEsc(key)+'"]');if(r){if(focus)r.focus();else r.scrollIntoView({block:"nearest"})}
+  }
+  panel.addEventListener("click",function(e){
+    if(e.target.closest("[data-close]")){panel.classList.remove("open");return}
+    var g=e.target.closest("[data-go]");if(g&&model.keyOf[g.getAttribute("data-go")]){qEl.value="";select(model.keyOf[g.getAttribute("data-go")],false)}
+  });
+
+  /* ---------- Interactions ---------- */
+  function toggle(key,force){var on=force==null?!open.has(key):force;if(on)open.add(key);else open.delete(key);saveOpen();render()}
+  treeEl.addEventListener("click",function(e){
+    if(e.target.closest("[data-pick]")){$("file").click();return}
+    var c=e.target.closest(".caret[data-t]");if(c){var k=c.getAttribute("data-t");toggle(k);var r=treeEl.querySelector('.row[data-key="'+cssEsc(k)+'"]');if(r)r.focus();return}
+    var row=e.target.closest(".row");if(row)select(row.getAttribute("data-key"),true);
+  });
+  treeEl.addEventListener("keydown",function(e){
+    var row=e.target.closest(".row");if(!row)return;var rows=Array.from(treeEl.querySelectorAll(".row")),i=rows.indexOf(row),key=row.getAttribute("data-key");
+    var go=function(r){if(r){rows.forEach(function(x){x.tabIndex=-1});r.tabIndex=0;r.focus();e.preventDefault()}};
+    if(e.key==="ArrowDown")go(rows[i+1]);
+    else if(e.key==="ArrowUp")go(rows[i-1]);
+    else if(e.key==="Home")go(rows[0]);
+    else if(e.key==="End")go(rows[rows.length-1]);
+    else if(e.key==="ArrowRight"){if(row.getAttribute("aria-expanded")==="false"){e.preventDefault();toggle(key,true)}else go(rows[i+1])}
+    else if(e.key==="ArrowLeft"){if(row.getAttribute("aria-expanded")==="true"){e.preventDefault();toggle(key,false)}else{var lv=+row.getAttribute("aria-level");for(var j=i-1;j>=0;j--){if(+rows[j].getAttribute("aria-level")<lv){go(rows[j]);break}}}}
+    else if(e.key==="Enter"||e.key===" "){e.preventDefault();select(key,true)}
+  });
+  qEl.addEventListener("input",function(){if(tab==="postes")renderPostes();else if(tab==="physiques")renderPhys();else render()});
+  $("exp").addEventListener("click",function(){if(!model)return;model.order.forEach(function(s){open.add("site:"+s);(function w(l,p){l.forEach(function(o){var k=p+"/"+o.id;if(o.children.length){open.add(k);w(o.children,k)}})})(model.sites[s],"site:"+s)});saveOpen();render()});
+  $("col").addEventListener("click",function(){open.clear();saveOpen();render()});
+  $("pick").addEventListener("click",function(){$("file").click()});
+  $("file").addEventListener("change",function(e){readFiles(e.target.files);e.target.value=""});
+  document.addEventListener("dragover",function(e){e.preventDefault();document.body.classList.add("drag")});
+  document.addEventListener("dragleave",function(e){if(!e.relatedTarget)document.body.classList.remove("drag")});
+  document.addEventListener("drop",function(e){e.preventDefault();document.body.classList.remove("drag");if(e.dataTransfer)readFiles(e.dataTransfer.files)});
+
+  /* ---------- Onglets ---------- */
+  var TABS=["inventaire","schema","postes","physiques"], tab="inventaire";
+  var SUBS={
+    inventaire:'Serveurs classés par site. Données : <code>infra.csv</code> et <code>vlans.csv</code>.',
+    schema:'Schéma d\'architecture. Données : <code>infra-shema.drawio.svg</code> (modifiable dans draw.io).',
+    physiques:'Serveurs et équipements physiques par site : ressources, cluster, rôle. Données : <code>physiques.csv</code>.',
+    postes:'Logiciels ajoutés sur les postes d\'accès (portables de Paris, clients légers de Genève) et dans les sessions VDI, les applications web, et ce qui est retiré de Windows. Données : <code>postes.csv</code>.'
+  };
+  var PH={inventaire:"Rechercher un serveur, un rôle…",schema:"",postes:"Rechercher un logiciel, un rôle…",physiques:"Rechercher un serveur physique…"};
+  var lastStatus={inventaire:"",schema:"",postes:"",physiques:""};
+  function showTab(t,noHash){
+    if(TABS.indexOf(t)<0)t="inventaire";
+    tab=t;
+    TABS.forEach(function(x){$("v-"+x).hidden=x!==t});
+    Array.from(document.querySelectorAll(".tab")).forEach(function(b){b.setAttribute("aria-selected",String(b.getAttribute("data-tab")===t))});
+    $("sub").innerHTML=SUBS[t];
+    $("exp").hidden=$("col").hidden=t!=="inventaire";
+    $("legend").hidden=t!=="inventaire";
+    $("q").parentNode.hidden=t==="schema";
+    qEl.placeholder=PH[t];
+    if(t==="schema"&&!schemaLoaded)loadSchema();
+    if(t==="inventaire"&&model)statusLine();
+    if(t==="postes")postesStatus();
+    if(t==="physiques")physStatus();
+    if(t==="schema"&&lastStatus.schema)setStatus(lastStatus.schema.t,lastStatus.schema.err);
+    if(!noHash){try{history.replaceState(null,"","#"+t)}catch(e){location.hash=t}}
+    if(t==="postes")renderPostes();else if(t==="physiques")renderPhys();else if(t==="inventaire")render();
+    barH();
+  }
+  Array.from(document.querySelectorAll(".tab")).forEach(function(b){b.addEventListener("click",function(){showTab(b.getAttribute("data-tab"))})});
+  window.addEventListener("hashchange",function(){var h=location.hash.slice(1);if(h&&h!==tab)showTab(h,true)});
+
+  /* ---------- Schéma (.drawio) ---------- */
+  /* Le fichier .drawio est affiché avec le visualiseur officiel de diagrams.net (le dessin est fait dans le navigateur, rien n'est envoyé). */
+  var DRAWIO_FILE="infra-shema.drawio";
+  var VIEWER_URL="https://viewer.diagrams.net/js/viewer-static.min.js";
+  var schemaLoaded=false, viewerP=null;
+  function schStatus(t,err){lastStatus.schema={t:t,err:err};if(tab==="schema")setStatus(t,err)}
+  function schMsg(title,html){$("sch-box").innerHTML='<div class="tree-msg"><strong>'+esc(title)+'</strong><div>'+html+'</div><button class="btn primary" type="button" data-pick>Choisir un fichier .drawio, .svg ou .png</button></div>'}
+  function loadViewer(){
+    if(window.GraphViewer)return Promise.resolve();
+    if(viewerP)return viewerP;
+    viewerP=new Promise(function(ok,ko){var s=document.createElement("script");s.src=VIEWER_URL;s.async=true;s.onload=function(){window.GraphViewer?ok():ko()};s.onerror=function(){viewerP=null;ko()};document.head.appendChild(s)});
+    return viewerP;
+  }
+  function drawioIsEmpty(text){
+    var doc=new DOMParser().parseFromString(text,"application/xml");
+    if(doc.getElementsByTagName("parsererror").length)return "invalid";
+    var ds=Array.from(doc.getElementsByTagName("diagram"));
+    if(!ds.length)return doc.getElementsByTagName("mxCell").length>2?"":"empty";
+    var full=ds.some(function(d){var m=d.getElementsByTagName("mxGraphModel")[0];if(!m)return d.textContent.trim().length>0;return m.getElementsByTagName("mxCell").length>2});
+    return full?"":"empty";
+  }
+  function showDrawio(text,name){
+    schemaLoaded=true;
+    var st=drawioIsEmpty(text);
+    $("sch-info").innerHTML="Schéma d'architecture, lu depuis <code>"+esc(name)+"</code>.";
+    if(st==="invalid"){schMsg("Fichier illisible","<code>"+esc(name)+"</code> n'est pas un fichier draw.io valide.");schStatus("Schéma : "+name+" illisible.",true);return}
+    if(st==="empty"){schMsg("Le schéma est vide","<code>"+esc(name)+"</code> ne contient aucune forme. Dans draw.io, ouvrez votre schéma puis <b>Fichier &gt; Enregistrer sous</b> au format .drawio, et remplacez le fichier dans le dépôt.");schStatus("Schéma : "+name+" est vide.",true);return}
+    $("sch-box").innerHTML='<div class="tree-msg">Affichage du schéma…</div>';
+    loadViewer().then(function(){
+      var box=$("sch-box"), div=document.createElement("div");
+      div.className="mxgraph";
+      div.setAttribute("data-mxgraph",JSON.stringify({highlight:"#1d6a86",nav:true,resize:true,toolbar:"zoom layers pages lightbox","toolbar-nohide":true,"toolbar-position":"top",lightbox:false,xml:text}));
+      box.innerHTML="";box.appendChild(div);
+      window.GraphViewer.processElements();
+      schStatus("Schéma : "+name+".");
+    }).catch(function(){
+      schMsg("Visualiseur draw.io indisponible","Le visualiseur de diagrams.net n'a pas pu être chargé (connexion Internet nécessaire). Solution sans Internet : dans draw.io, <b>Fichier &gt; Exporter en &gt; SVG</b>, puis ouvrez le .svg ici.");
+      schStatus("Schéma : visualiseur draw.io non chargé.",true);
+    });
+  }
+  /* Image modifiable (.drawio.svg / .drawio.png) : affichée directement, sans visualiseur externe,
+     y compris en ouvrant index.html par un double-clic. draw.io sait rouvrir et modifier ces fichiers. */
+  var IMAGE_FILES=["infra-shema.drawio.svg","infra-shema.drawio.png"];
+  var zoom="fit";
+  function applyZoom(){var img=$("sch-box").querySelector("img");if(!img)return;
+    if(zoom==="fit"){img.style.width="";img.style.maxWidth="100%"}else{img.style.maxWidth="none";img.style.width=(img.naturalWidth*zoom)+"px"}
+    Array.from(document.querySelectorAll("[data-zoom]")).forEach(function(b){b.hidden=false})}
+  function showSchemaImage(src,name,href){
+    schemaLoaded=true;
+    $("sch-info").innerHTML="Schéma d'architecture, lu depuis <code>"+esc(name)+"</code>. Pour le modifier : ouvrez ce fichier dans draw.io, puis enregistrez-le sous le même nom.";
+    var dl=$("sch-dl");dl.textContent="Télécharger le schéma";dl.setAttribute("href",href||src);dl.setAttribute("download",name);
+    $("sch-box").innerHTML='<img alt="Schéma d\'architecture de l\'infrastructure Althea" src="'+esc(src)+'">';
+    var img=$("sch-box").querySelector("img");img.onload=applyZoom;
+    schStatus("Schéma : "+name+".");
+  }
+  function tryImages(i,done){
+    if(i>=IMAGE_FILES.length){done();return}
+    var name=IMAGE_FILES[i], probe=new Image();
+    probe.onload=function(){showSchemaImage(name+"?v="+Date.now(),name,name)};
+    probe.onerror=function(){tryImages(i+1,done)};
+    probe.src=name+"?v="+Date.now();
+  }
+  function loadSchema(){
+    schemaLoaded=true;
+    tryImages(0,function(){
+      fetch(DRAWIO_FILE,{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.arrayBuffer()})
+        .then(function(b){showDrawio(decode(b),DRAWIO_FILE)})
+        .catch(function(){schemaLoaded=false;schMsg("Aucun schéma trouvé","Déposez à côté de la page le fichier <code>infra-shema.drawio.svg</code> : dans draw.io, <b>Fichier &gt; Exporter en &gt; SVG</b>, cochez <b>Inclure une copie de mon diagramme</b>, et nommez-le ainsi. Il reste modifiable dans draw.io.");schStatus("Aucun schéma trouvé à côté de la page.",true)});
+    });
+  }
+  $("sch-box").addEventListener("click",function(e){if(e.target.closest("[data-pick]"))$("file").click()});
+  Array.from(document.querySelectorAll("[data-zoom]")).forEach(function(b){b.addEventListener("click",function(){var z=b.getAttribute("data-zoom");
+    if(z==="fit")zoom="fit";else{var cur=zoom==="fit"?1:zoom;zoom=z==="in"?Math.min(cur*1.25,4):z==="out"?Math.max(cur/1.25,.25):1}applyZoom()})});
+
+  /* ---------- Postes clients (postes.csv) ---------- */
+  var PCOLS=["id","cible","categorie","nom","statut","role","technologie","installation","configuration","mises_a_jour","serveur","licence","note"];
+  var postes=null, postesSource="", pf="tous", psel=null;
+  var ppanel=$("ppanel"), plist=$("plist");
+  function isPostesFile(text){var h=(parseCSV(text.slice(0,2000))[0]||[]).map(norm);return h.indexOf("cible")>=0&&h.indexOf("nom")>=0}
+  function ingestPostes(text,name){
+    var raw=parseCSV(text);if(!raw.length)return;
+    var h=raw[0].map(norm),idx={};PCOLS.forEach(function(c){idx[c]=h.indexOf(c)});
+    var list=[],seen={};
+    raw.slice(1).forEach(function(r,i){var o={line:i+2};PCOLS.forEach(function(c){o[c]=idx[c]>=0&&r[idx[c]]!=null?String(r[idx[c]]).trim():""});
+      if(!o.nom)return;if(!o.id)o.id="ligne-"+o.line;if(seen[o.id])return;seen[o.id]=1;
+      var c=norm(o.cible);o.cl=c.indexOf("acces")>=0||c.indexOf("client")>=0;o.vdi=c.indexOf("vdi")>=0;o.non=norm(o.statut).indexOf("non")===0;o.ret=norm(o.statut).indexOf("retir")===0;o.web=norm(o.statut).indexOf("web")===0;
+      if(!o.categorie)o.categorie="Autres";list.push(o)});
+    postes=list;postesSource=name;psel=null;fillPoste();renderPostes();postesStatus();
+  }
+  function postesStatus(){
+    if(tab!=="postes")return;
+    if(!postes){setStatus("postes.csv n'a pas pu être lu automatiquement.",true);return}
+    var add=function(o){return !o.non&&!o.ret&&!o.web}, web=postes.filter(function(o){return o.web}).length;
+    var cl=postes.filter(function(o){return o.cl&&add(o)}).length, vdi=postes.filter(function(o){return o.vdi&&add(o)}).length, ret=postes.filter(function(o){return o.ret}).length, non=postes.filter(function(o){return o.non}).length;
+    setStatus(cl+" ajoutés sur les postes d'accès · "+vdi+" ajoutés dans les sessions VDI · "+web+" applications web · "+ret+" retirés de Windows · source : "+postesSource);
+  }
+  function stClass(s){s=norm(s);if(s.indexOf("non")===0)return "s-non";if(s.indexOf("retir")===0)return "s-ret";if(s.indexOf("web")===0)return "s-web";if(s.indexOf("pilote")>=0)return "s-pil";if(s.indexOf("option")>=0)return "s-opt";if(s.indexOf("preciser")>=0)return "s-tbd";return "s-ok"}
+  function cibleTags(o){if(o.web)return "";return (o.cl?'<span class="st c-cl">Poste d\'accès</span>':"")+(o.vdi?'<span class="st c-vdi">Session VDI</span>':"")}
+  function pHay(o){return norm(PCOLS.map(function(c){return o[c]}).join(" "))}
+  function pVisible(o,q){
+    if(pf==="cl"&&(!o.cl||o.non||o.ret||o.web))return false;
+    if(pf==="vdi"&&(!o.vdi||o.non||o.ret||o.web))return false;
+    if(pf==="web"&&!o.web)return false;
+    if(pf==="ret"&&!o.ret)return false;
+    if(pf==="non"&&!o.non)return false;
+    return !q||pHay(o).indexOf(q)>=0;
+  }
+  function renderPostes(){
+    if(!postes){plist.innerHTML='<div class="tree-msg"><strong>Choisissez le fichier des postes</strong><div>La page n\'a pas pu lire <code>postes.csv</code>. Sur GitHub Pages, il se charge seul ; en local, choisissez-le ou glissez-le sur la page.</div><button class="btn primary" type="button" data-pick>Choisir postes.csv</button></div>';$("pcount").textContent="";return}
+    var q=norm(qEl.value), cats=[], by={}, n=0;
+    postes.forEach(function(o){if(!pVisible(o,q))return;n++;if(!by[o.categorie]){by[o.categorie]=[];cats.push(o.categorie)}by[o.categorie].push(o)});
+    $("pcount").textContent=n+" élément"+(n>1?"s":"");
+    plist.innerHTML=cats.map(function(c){return '<div class="cat">'+esc(c)+'</div>'+by[c].map(function(o){
+      return '<div class="prow" role="option" tabindex="0" data-p="'+esc(o.id)+'" aria-selected="'+(psel===o.id)+'"><span class="nm">'+hl(o.nom,q)+'</span><span class="tags"><span class="st '+stClass(o.statut)+'">'+esc(o.statut||"Installé")+'</span>'+cibleTags(o)+'</span>'+(o.role?'<span class="ln2">'+hl(o.role,q)+'</span>':"")+'</div>'}).join("")}).join("")||'<div class="tree-msg">Aucun logiciel ne correspond.</div>';
+  }
+  function serverLinks(s){
+    return String(s||"").split("|").map(function(x){return x.trim()}).filter(Boolean).map(function(id){
+      var o=model&&model.byId[id];return o?'<button type="button" class="link" data-inv="'+esc(id)+'">'+esc(o.nom)+'</button>':'<code>'+esc(id)+'</code>'}).join(", ");
+  }
+  function fillPoste(){
+    var box=$("pdetail"), o=postes&&psel?postes.filter(function(x){return x.id===psel})[0]:null;
+    if(!o){box.hidden=true;$("pempty").hidden=false;ppanel.classList.remove("open");return}
+    var f=function(label,v){return v?'<div><dt>'+label+'</dt><dd>'+esc(v)+'</dd></div>':""};
+    box.innerHTML='<div class="ptop"><span class="st '+stClass(o.statut)+'">'+esc(o.statut||"Installé")+'</span><span class="path">'+esc(o.categorie)+'</span><button type="button" class="btn sm closebtn" data-close>Fermer</button></div>'+
+      '<p class="dname">'+esc(o.nom)+'</p><div class="tags" style="justify-content:flex-start;margin:-6px 0 12px">'+cibleTags(o)+'</div>'+
+      (o.non&&o.note?'<div class="why"><b>Pourquoi il n\'est pas installé</b>'+esc(o.note)+'</div>':"")+
+      (o.ret&&o.note?'<div class="why"><b>Pourquoi on le retire</b>'+esc(o.note)+'</div>':"")+
+      (o.ret?'<dl class="dl">'+f("Ce que c\'est",o.role)+f("Remplacé par",o.technologie)+f("Comment il est retiré",o.installation):
+      o.web?'<dl class="dl">'+f("À quoi ça sert",o.role)+f("Technologie",o.technologie)+f("Où y accéder",o.installation)+f("Connexion",o.configuration):
+      '<dl class="dl">'+f("À quoi ça sert",o.role)+f("Technologie retenue",o.technologie)+f("Comment il est installé",o.installation))+f("Configuration",o.web?"":o.configuration)+f("Mises à jour",o.mises_a_jour)+
+      (o.serveur?'<div><dt>Serveur lié</dt><dd>'+serverLinks(o.serveur)+'</dd></div>':"")+f("Licence",o.licence)+(o.non||o.ret?"":f("Note",o.note))+'</dl>'+
+      '<p class="csvref">Dans <code>'+esc(postesSource)+'</code> : ligne '+o.line+', id <code>'+esc(o.id)+'</code>.</p>';
+    box.hidden=false;$("pempty").hidden=true;
+  }
+  function selectPoste(id){psel=id;renderPostes();fillPoste();if(window.matchMedia("(max-width:960px)").matches)ppanel.classList.add("open")}
+  plist.addEventListener("click",function(e){if(e.target.closest("[data-pick]")){$("file").click();return}var r=e.target.closest(".prow");if(r)selectPoste(r.getAttribute("data-p"))});
+  plist.addEventListener("keydown",function(e){var r=e.target.closest(".prow");if(!r)return;var rows=Array.from(plist.querySelectorAll(".prow")),i=rows.indexOf(r);
+    if(e.key==="Enter"||e.key===" "){e.preventDefault();selectPoste(r.getAttribute("data-p"));var n=plist.querySelector('[data-p="'+cssEsc(r.getAttribute("data-p"))+'"]');if(n)n.focus()}
+    else if(e.key==="ArrowDown"&&rows[i+1]){e.preventDefault();rows[i+1].focus()}else if(e.key==="ArrowUp"&&rows[i-1]){e.preventDefault();rows[i-1].focus()}});
+  ppanel.addEventListener("click",function(e){
+    if(e.target.closest("[data-close]")){ppanel.classList.remove("open");return}
+    var g=e.target.closest("[data-inv]");if(g&&model&&model.keyOf[g.getAttribute("data-inv")]){ppanel.classList.remove("open");qEl.value="";showTab("inventaire");select(model.keyOf[g.getAttribute("data-inv")],false)}
+  });
+  Array.from(document.querySelectorAll(".fbtn")).forEach(function(b){b.addEventListener("click",function(){pf=b.getAttribute("data-f");Array.from(document.querySelectorAll(".fbtn")).forEach(function(x){x.setAttribute("aria-pressed",String(x===b))});renderPostes()})});
+  /* ---------- Serveurs physiques (physiques.csv) ---------- */
+  var PHCOLS=["id","site","emplacement","nom","modele","categorie","cluster","processeur","threads","ram","stockage_detail","stockage_utile","reseau","inventaire","justif_config","inclus","composants","commentaire"];
+  var phys=null, physSource="", phf="tous", phsel=null;
+  var phpanel=$("phpanel"), phlist=$("phlist");
+  function isPhysFile(text){var h=(parseCSV(text.slice(0,2000))[0]||[]).map(norm);return h.indexOf("stockage_detail")>=0||(h.indexOf("processeur")>=0&&h.indexOf("commentaire")>=0)}
+  function ingestPhys(text,name){
+    var raw=parseCSV(text);if(!raw.length)return;
+    var h=raw[0].map(norm),idx={};PHCOLS.forEach(function(c){idx[c]=h.indexOf(c)});
+    var list=[],seen={};
+    raw.slice(1).forEach(function(r,i){var o={line:i+2};PHCOLS.forEach(function(c){o[c]=idx[c]>=0&&r[idx[c]]!=null?String(r[idx[c]]).trim():""});
+      if(!o.nom)return;if(!o.id)o.id="ligne-"+o.line;if(seen[o.id])return;seen[o.id]=1;if(!o.site)o.site="Sans site";list.push(o)});
+    phys=list;physSource=name;phsel=null;buildPhysFilters();fillPhys();renderPhys();physStatus();
+  }
+  function physSites(){var s=[];(phys||[]).forEach(function(o){if(s.indexOf(o.site)<0)s.push(o.site)});return s}
+  function isServer(o){return num(o.threads)!=null||num(o.ram)!=null}
+  function physStatus(){
+    if(tab!=="physiques")return;
+    if(!phys){setStatus("physiques.csv n'a pas pu être lu automatiquement.",true);return}
+    var srv=phys.filter(isServer).length;
+    setStatus(phys.length+" équipements physiques sur "+physSites().length+" sites · "+srv+" serveurs · "+(phys.length-srv)+" équipements réseau · source : "+physSource);
+  }
+  function buildPhysFilters(){
+    var box=$("phfilters"),s=physSites();
+    box.innerHTML='<button class="fbtn" type="button" data-pf="tous" aria-pressed="'+(phf==="tous")+'">Tous les sites</button>'+s.map(function(x){return '<button class="fbtn" type="button" data-pf="'+esc(x)+'" aria-pressed="'+(phf===x)+'">'+esc(x)+'</button>'}).join("")+'<span class="fcount" id="phcount"></span>';
+  }
+  $("phfilters").addEventListener("click",function(e){var b=e.target.closest("[data-pf]");if(!b)return;phf=b.getAttribute("data-pf");buildPhysFilters();renderPhys()});
+  function goTxt(n){return n>=1000?(n/1000).toLocaleString("fr-FR",{maximumFractionDigits:1})+" To":n.toLocaleString("fr-FR")+" Go"}
+  function renderPhys(){
+    if(!phys){phlist.innerHTML='<div class="tree-msg"><strong>Choisissez le fichier des serveurs physiques</strong><div>La page n\'a pas pu lire <code>physiques.csv</code>. Sur GitHub Pages, il se charge seul ; en local, choisissez-le ou glissez-le sur la page.</div><button class="btn primary" type="button" data-pick>Choisir physiques.csv</button></div>';$("phsum").innerHTML="";return}
+    var q=norm(qEl.value), sites=physSites().filter(function(s){return phf==="tous"||s===phf}), out=[], n=0;
+    $("phsum").innerHTML=sites.map(function(s){
+      var l=phys.filter(function(o){return o.site===s&&isServer(o)}), eq=phys.filter(function(o){return o.site===s&&!isServer(o)}).length;
+      var t=l.reduce(function(a,o){return a+(num(o.threads)||0)},0), r=l.reduce(function(a,o){return a+(num(o.ram)||0)},0), st=l.reduce(function(a,o){return a+(num(o.stockage_utile)||0)},0);
+      return '<div><b>'+esc(s)+'</b><span>'+l.length+' serveur'+(l.length>1?"s":"")+(eq?' + '+eq+' équipement'+(eq>1?"s":"")+' réseau':"")+'</span><span>'+t.toLocaleString("fr-FR")+' threads · '+goTxt(r)+' de RAM · '+goTxt(st)+' de stockage utile</span></div>'}).join("");
+    sites.forEach(function(s){
+      var l=phys.filter(function(o){return o.site===s&&(!q||norm(PHCOLS.map(function(c){return o[c]}).join(" ")).indexOf(q)>=0)});
+      if(!l.length)return;
+      out.push('<div class="cat">'+esc(s)+'</div>');
+      l.forEach(function(o){n++;
+        out.push('<div class="prow phrow" role="option" tabindex="0" data-ph="'+esc(o.id)+'" aria-selected="'+(phsel===o.id)+'"><span class="phname"><span class="nm">'+hl(o.nom,q)+'</span><span class="ln2">'+(o.modele?hl(o.modele,q)+' · ':"")+hl(o.categorie,q)+(o.emplacement?' · '+hl(o.emplacement,q):"")+'</span>'+
+          '<span class="redtag">'+GRPI+hl(o.cluster||"Aucun cluster",q)+'</span></span>'+
+          '<span class="c-n" data-l="Threads">'+esc(fmt(o.threads))+'</span><span class="c-n" data-l="RAM">'+(o.ram?esc(fmt(o.ram))+" Go":"")+'</span><span class="c-n" data-l="Stockage">'+(num(o.stockage_utile)!=null?esc(goTxt(num(o.stockage_utile))):"")+'</span>'+
+          (o.commentaire?'<span class="ln2 phcom">'+hl(o.commentaire,q)+'</span>':"")+'</div>')});
+    });
+    $("phcount").textContent=n+" élément"+(n>1?"s":"");
+    phlist.innerHTML=out.join("")||'<div class="tree-msg">Aucun équipement ne correspond.</div>';
+  }
+  /* Liste « élément — raison » (éléments séparés par « · ») */
+  function itemList(title,txt,hint){
+    if(!txt)return "";
+    var it=txt.split(" · ").map(function(x){var k=x.indexOf(" — ");return k<0?{t:x,w:""}:{t:x.slice(0,k),w:x.slice(k+3)}});
+    return '<h3 class="sech">'+esc(title)+' <span>'+it.length+'</span></h3><p class="sechint">'+esc(hint)+'</p><ul class="items">'+it.map(function(i){return '<li><b>'+esc(i.t)+'</b>'+(i.w?'<span>'+esc(i.w)+'</span>':"")+'</li>'}).join("")+'</ul>';
+  }
+  function fillPhys(){
+    var box=$("phdetail"), o=phys&&phsel?phys.filter(function(x){return x.id===phsel})[0]:null;
+    if(!o){box.hidden=true;$("phempty").hidden=false;phpanel.classList.remove("open");return}
+    var f=function(label,v){return v?'<div><dt>'+label+'</dt><dd>'+esc(v)+'</dd></div>':""};
+    var inv=model&&o.inventaire?model.byId[o.inventaire]:null, host="";
+    if(inv&&inv.children.length){
+      var v=0,r=0;inv.children.forEach(function(c){v+=num(c.vcpu)||0;r+=num(c.ram)||0});
+      host='<div><dt>Ce qui tourne dessus (d\'après infra.csv)</dt><dd>'+inv.children.map(function(c){return '<button type="button" class="link" data-inv="'+esc(c.id)+'">'+esc(c.nom)+'</button>'}).join(", ")+
+        (v||r?'<div style="color:var(--muted);font-size:.84rem;margin-top:3px">Charge en temps normal : '+v.toLocaleString("fr-FR")+' vCPU / '+r.toLocaleString("fr-FR")+' Go de RAM</div>':"")+'</dd></div>';
+    }
+    box.innerHTML='<div class="ptop"><span class="chip k-'+(isServer(o)?"hyperviseur":"physique")+'">'+(isServer(o)?"SRV":"EQP")+'</span><span class="path">'+esc(o.site+(o.emplacement?" › "+o.emplacement:""))+'</span><button type="button" class="btn sm closebtn" data-close>Fermer</button></div>'+
+      '<p class="dname">'+esc(o.nom)+'</p>'+
+      (isServer(o)?'<dl class="res"><div><dt>Threads</dt><dd>'+esc(fmt(o.threads)||"·")+'</dd></div><div><dt>RAM</dt><dd>'+(o.ram?esc(fmt(o.ram))+" Go":"·")+'</dd></div><div><dt>Stockage</dt><dd>'+(num(o.stockage_utile)!=null?esc(goTxt(num(o.stockage_utile))):"·")+'</dd></div></dl>':"")+
+      (o.commentaire?'<div class="why"><b>Ce qu\'il fait</b>'+esc(o.commentaire)+'</div>':"")+
+      (o.justif_config?'<div class="why"><b>Pourquoi cette configuration</b>'+esc(o.justif_config)+'</div>':"")+
+      '<h3 class="sech">Détail de la configuration</h3><dl class="dl">'+f("Modèle",o.modele)+f("Processeur",o.processeur+(o.threads?" ("+o.threads+" threads)":""))+f("Mémoire",o.ram?o.ram+" Go":"")+f("Disques",o.stockage_detail)+(num(o.stockage_utile)!=null?f("Stockage utile",goTxt(num(o.stockage_utile))):"")+f("Réseau",o.reseau)+'</dl>'+
+      itemList("Inclus dans le serveur de base",o.inclus,"Élément · ce qu'il apporte")+
+      itemList("Ajouté à la commande",o.composants,"Composant · pourquoi il est ajouté")+
+      '<h3 class="sech">Place dans l\'infrastructure</h3><dl class="dl">'+f("Site",o.site)+f("Emplacement",o.emplacement)+f("Catégorie",o.categorie)+f("Cluster",o.cluster||"Aucun")+host+
+      (inv?'<div><dt>Fiche dans l\'inventaire</dt><dd><button type="button" class="link" data-inv="'+esc(inv.id)+'">'+esc(inv.nom)+'</button></dd></div>':"")+'</dl>'+
+      '<p class="csvref">Dans <code>'+esc(physSource)+'</code> : ligne '+o.line+', id <code>'+esc(o.id)+'</code>.</p>';
+    box.hidden=false;$("phempty").hidden=true;
+  }
+  function selectPhys(id){phsel=id;renderPhys();fillPhys();if(window.matchMedia("(max-width:960px)").matches)phpanel.classList.add("open")}
+  phlist.addEventListener("click",function(e){if(e.target.closest("[data-pick]")){$("file").click();return}var r=e.target.closest(".phrow");if(r)selectPhys(r.getAttribute("data-ph"))});
+  phlist.addEventListener("keydown",function(e){var r=e.target.closest(".phrow");if(!r)return;var rows=Array.from(phlist.querySelectorAll(".phrow")),i=rows.indexOf(r);
+    if(e.key==="Enter"||e.key===" "){e.preventDefault();var id=r.getAttribute("data-ph");selectPhys(id);var n2=phlist.querySelector('[data-ph="'+cssEsc(id)+'"]');if(n2)n2.focus()}
+    else if(e.key==="ArrowDown"&&rows[i+1]){e.preventDefault();rows[i+1].focus()}else if(e.key==="ArrowUp"&&rows[i-1]){e.preventDefault();rows[i-1].focus()}});
+  phpanel.addEventListener("click",function(e){
+    if(e.target.closest("[data-close]")){phpanel.classList.remove("open");return}
+    var g=e.target.closest("[data-inv]");if(g&&model&&model.keyOf[g.getAttribute("data-inv")]){phpanel.classList.remove("open");qEl.value="";showTab("inventaire");select(model.keyOf[g.getAttribute("data-inv")],false)}
+  });
+  function loadPhys(){
+    fetch("physiques.csv",{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.arrayBuffer()}).then(function(b){ingestPhys(decode(b),"physiques.csv")}).catch(function(){buildPhysFilters();renderPhys();physStatus()});
+  }
+
+  function loadPostes(){
+    fetch("postes.csv",{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.arrayBuffer()}).then(function(b){ingestPostes(decode(b),"postes.csv")}).catch(function(){renderPostes();postesStatus()});
+  }
+
+  function barH(){document.documentElement.style.setProperty("--bar-h",$("bar").offsetHeight+"px")}
+  window.addEventListener("resize",barH);barH();
+  loadDefault();
+  loadPostes();
+  loadPhys();
+  showTab(location.hash.slice(1)||"inventaire",true);
+})();
+</script>
+</body>
+</html>
