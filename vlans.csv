@@ -20,7 +20,7 @@ Paris;;Wi-Fi VoIP;;;oui (FortiGate);iPhones, PPSK
 Paris;;Imprimantes;;;réservations;Imprimantes et scanners, sans Internet
 Paris;;DEV;;;non;Environnement de développement
 Paris;;TEST;;;non;Environnement de test
-Paris;;PRE-PROD;;;non;Pré-production, données anonymisées
+Paris;;PRE-PROD;;;non;Pré-production, données fictives
 Paris;;Outils dev;;;non;Runners, SonarQube, S3 de test, tests de charge
 Paris;;Admin serveur dev;;;non;Interface du serveur Proxmox des développeurs
 Genève;;Administration;;;non;FortiGate, switches, bornes, iDRAC

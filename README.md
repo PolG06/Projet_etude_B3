@@ -50,7 +50,7 @@ Ouvrez `infra.csv` dans Excel, LibreOffice Calc, ou directement dans l'éditeur 
 | `replique_de` | Pour une machine de secours : `id` de la machine qu'elle redonde. La page affiche alors « Réplique de… » d'un côté et « Redondé sur… » de l'autre, avec un lien entre les deux. |
 | `redondance` | Comment l'élément est redondé (réplication, fréquence…). |
 | `note` | Remarque libre. |
-| `cluster` | Facultatif. `id` du cluster dont la VM fait partie quand ses VM sont sur plusieurs hyperviseurs (ex. `wazuh-paris`). La ligne du cluster n'apparaît alors plus dans l'arbre (ses VM sont sous leurs hyperviseurs) : chaque VM porte l'étiquette « Membre de… », et sa fiche donne le lien vers le cluster (composition, conteneurs, réplique OVH) et la liste des autres membres. |
+| `cluster` | Facultatif. `id` du cluster dont la VM fait partie quand ses VM sont sur plusieurs hyperviseurs (ex. `wazuh-paris`). Chaque VM reste rangée sous son hyperviseur et porte l'étiquette « Membre de… » ainsi que la liste des applications du cluster ; sa fiche donne le lien vers le cluster, ses applications et les autres membres. La ligne du cluster reste dans l'arbre si elle contient des applications (conteneurs), qui s'affichent dessous ; un simple groupe sans application (ex. `wazuh-paris`) n'y apparaît pas. |
 
 ### Le fichier vlans.csv
 
@@ -62,7 +62,7 @@ Les totaux d'un site (sous son nom, et au clic) comptent tous les **serveurs** :
 
 **Un cluster Kubernetes se traite comme une VM** : sa ligne porte directement les ressources de tous ses nœuds (vCPU, RAM, stockage additionnés), leurs adresses dans la colonne `ip` (`API : 10.10.31.20 | nœud1: 10.10.31.21 | …`), et le détail par nœud dans `justif_ressources`. Les conteneurs ont pour `parent` l'`id` du cluster. Pas de ligne VM entre le cluster et ses conteneurs.
 
-**Exception : un cluster dont les VM tournent sur des hyperviseurs différents** (K3s commun, K3s site web). Sa ligne `cluster` garde les conteneurs mais **n'a pas de ressources** ; chaque VM a sa propre ligne, rangée sous son hyperviseur (`parent` = `hyperviseur-infra-1`…). La page ne compte pas un cluster sans ressources, pour éviter un double comptage.
+**Exception : un cluster dont les VM tournent sur des hyperviseurs différents** (K3s commun, K3s site web). Sa ligne `cluster` garde les conteneurs (affichés sous elle dans l'arbre) mais **n'a pas de ressources** ; chaque VM a sa propre ligne, rangée sous son hyperviseur (`parent` = `hyperviseur-infra-1`…). La page ne compte pas un cluster sans ressources, pour éviter un double comptage.
 
 **Rangement par hyperviseur** : chaque VM du cluster Proxmox a pour `parent` son nœud préféré (`hyperviseur-infra-1` à `4`). C'est la répartition en temps normal : la haute disponibilité peut la déplacer après une panne.
 

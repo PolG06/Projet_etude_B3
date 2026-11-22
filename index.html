@@ -495,7 +495,7 @@ body.drag .treebox{outline:2px dashed var(--accent);outline-offset:4px}
     if(isSite){var s=siteStats(model.sites[site]),rl2=resLine(s.srv);line2=s.srv.n+" serveur"+(s.srv.n>1?"s":"")+(rl2?" · "+rl2:"")}
     else{line2=o.fonction||o.note||"";var rl=relation(o,site);if(rl)tag='<span class="redtag">'+SYNC+esc(rl)+'</span>';
       if(o.members.length){var hs=[];o.members.forEach(function(m){var h=model.byId[m.parent];var x=h?h.nom:"";if(x&&hs.indexOf(x)<0)hs.push(x)});tag+='<span class="redtag">'+o.members.length+' VM'+(hs.length?' sur '+esc(hs.join(", ")):"")+'</span>'}
-      else if(o.cluster&&model.byId[o.cluster])tag+='<span class="redtag">'+GRPI+'Membre de « '+esc(model.byId[o.cluster].nom)+' »</span>'}
+      else if(o.cluster&&model.byId[o.cluster]){var cm=model.byId[o.cluster];tag+='<span class="redtag">'+GRPI+'Membre de « '+esc(cm.nom)+' »</span>';if(cm.children.length)tag+='<span class="redtag">Fait tourner : '+esc(cm.children.map(function(c){return c.nom}).join(", "))+'</span>'}}
     return '<div class="row rg'+(isSite?" is-site":"")+'" role="treeitem" tabindex="-1" data-key="'+esc(key)+'" aria-level="'+(d+1)+'"'+(kids?' aria-expanded="'+isOpen+'"':"")+' aria-selected="'+(sel===key)+'" style="--d:'+d+'">'+
       '<div class="c-name">'+(kids?'<button type="button" class="caret" data-t="'+esc(key)+'" tabindex="-1" aria-label="'+(isOpen?"Replier":"Déplier")+'">'+CHEV+'</button>':'<span class="caret ph"></span>')+
       '<span class="chip k-'+k+'">'+KINDS[k].tag+'</span><span class="nm-wrap"><span class="nm">'+hl(name,q)+'</span>'+(line2?'<span class="ln2">'+(isSite?esc(line2):hl(line2,q))+'</span>':"")+tag+'</span></div>'+
@@ -512,7 +512,7 @@ body.drag .treebox{outline:2px dashed var(--accent);outline-offset:4px}
       out.push(row(sk,null,0,list.length>0,so,q,site));
       if(!so)return;
       (function walk(l,d,path){l.forEach(function(o){
-        if(o.members.length)return; /* cluster ou groupe logique : ses VM sont affichées sous leur hyperviseur */
+        if(o.members.length&&!o.children.length)return; /* groupe logique sans application : ses VM sont affichées sous leur hyperviseur. Un cluster qui contient des applications reste affiché, avec ses applications dessous. */
         if(q&&!hasMatch(o,q))return;
         var key=path+"/"+o.id, kids=o.children.length>0, io=q?true:open.has(key);
         out.push(row(key,o,d,kids,io,q,site));
@@ -571,7 +571,7 @@ body.drag .treebox{outline:2px dashed var(--accent);outline-offset:4px}
         '<div><dt>Type</dt><dd>'+esc(KINDS[o.type].label)+'</dd></div>'+
         f("Note",o.note)+
         (o.members.length?'<div><dt>Composé de</dt><dd><div class="iplist" style="font-family:var(--f-body)">'+o.members.map(function(m){var h=model.byId[m.parent];return '<div><button type="button" class="link" data-go="'+esc(m.id)+'">'+esc(m.nom)+'</button> <span>'+esc([fmt(m.vcpu)+" vCPU / "+fmt(m.ram)+" Go",h?"sur "+h.nom:""].filter(Boolean).join(" · "))+'</span></div>'}).join("")+'</div></dd></div>':"")+
-        (o.cluster&&model.byId[o.cluster]?(function(c){var others=c.members.filter(function(m){return m!==o});return '<div><dt>Fait partie de</dt><dd>'+linkTo(c)+(c.fonction?'<div style="color:var(--muted);font-size:.84rem;margin-top:2px">'+esc(c.fonction)+'</div>':"")+(others.length?'<div style="margin-top:4px;font-size:.84rem">Autres membres : '+others.map(function(m){var h=model.byId[m.parent];return '<button type="button" class="link" data-go="'+esc(m.id)+'">'+esc(m.nom)+'</button>'+(h?' ('+esc(h.nom)+')':"")}).join(", ")+'</div>':"")+'</dd></div>'})(model.byId[o.cluster]):"")+
+        (o.cluster&&model.byId[o.cluster]?(function(c){var others=c.members.filter(function(m){return m!==o});return '<div><dt>Fait partie de</dt><dd>'+linkTo(c)+(c.fonction?'<div style="color:var(--muted);font-size:.84rem;margin-top:2px">'+esc(c.fonction)+'</div>':"")+(c.children.length?'<div style="margin-top:4px;font-size:.84rem">Applications du cluster (réparties sur ses nœuds) : '+c.children.map(function(a){return '<button type="button" class="link" data-go="'+esc(a.id)+'">'+esc(a.nom)+'</button>'}).join(", ")+'</div>':"")+(others.length?'<div style="margin-top:4px;font-size:.84rem">Autres membres : '+others.map(function(m){var h=model.byId[m.parent];return '<button type="button" class="link" data-go="'+esc(m.id)+'">'+esc(m.nom)+'</button>'+(h?' ('+esc(h.nom)+')':"")}).join(", ")+'</div>':"")+'</dd></div>'})(model.byId[o.cluster]):"")+
         (o.children.length?'<div><dt>Contient</dt><dd>'+o.children.map(function(c){return '<button type="button" class="link" data-go="'+esc(c.id)+'">'+esc(c.nom)+'</button>'}).join(", ")+'</dd></div>':"")+
       '</dl>'+
       '<p class="csvref">Dans <code>'+esc(source)+'</code> : ligne '+o.line+', id <code>'+esc(o.id)+'</code>'+(o.parent?', parent <code>'+esc(o.parent)+'</code>':"")+'.</p>';
